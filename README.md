@@ -15,6 +15,12 @@ A CLI tool for initializing LICENSE files in your projects.
 cargo install --git https://github.com/akirco/lic.git
 ```
 
+### For Linux/macOS (bash)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/neil-lee/lic/main/install.sh | bash
+```
+
 ## Usage
 
 ```bash

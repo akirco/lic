@@ -1,0 +1,113 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        target: [x86_64]
+        exclude:
+          # Exclude macOS x86_64 as it's covered by macos-latest
+          - os: macos-latest
+            target: x86_64
+          # Add cross-compilation for other targets if needed
+          - os: ubuntu-latest
+            target: aarch64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Build
+      run: |
+        cargo build --release
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: binary-${{ matrix.os }}-${{ matrix.target }}
+        path: |
+          target/release/lic
+        if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Create release notes
+      id: create_notes
+      run: |
+        # Extract version from tag
+        VERSION="${GITHUB_REF#refs/tags/v}"
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+        # Create simple release notes
+        cat > release_notes.md << EOF
+        ## Version $VERSION
+
+        ### Changes
+        - Automated release
+        
+        ### Installation
+        Download the appropriate binary for your platform from the Assets section below.
+        
+        ### Build Information
+        - Built from commit: ${{ github.sha }}
+        - Release date: $(date -u)
+        EOF
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        name: Release ${{ steps.create_notes.outputs.version }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+        generate_release_notes: false
+        files: |
+          binary-ubuntu-latest-x86_64/target/release/lic
+          binary-windows-latest-x86_64/target/release/lic.exe
+          binary-macos-latest-x86_64/target/release/lic
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up GitHub Pages
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      uses: actions/configure-pages@v3
+
+    - name: Upload to release page (optional)
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: .

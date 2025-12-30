@@ -14,7 +14,6 @@ NC='\033[0m' # No Color
 VERSION="latest"
 INSTALL_DIR="$HOME/.local/bin"
 GITHUB_REPO="akirco/lic"
-BINARY_NAME="lic"
 
 # Function to print colored output
 print_status() {
@@ -45,17 +44,20 @@ detect_os() {
             VERSION_ID="Unknown"
         fi
         ARCH=$(uname -m)
+        BINARY_NAME="lic"
         elif [[ "$OSTYPE" == "darwin"* ]]; then
         OS="macOS"
         ARCH=$(uname -m)
-        elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+        BINARY_NAME="lic"
+        elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]] || [[ "$OSTYPE" == "cygwin"* ]]; then
         OS="Windows"
         ARCH="x86_64"  # Most common for Windows
+        BINARY_NAME="lic.exe"
     else
         print_error "Unsupported operating system: $OSTYPE"
         exit 1
     fi
-    
+
     print_status "Detected OS: $OS $VERSION_ID ($ARCH)"
 }
 
@@ -99,21 +101,9 @@ check_dependencies() {
 # Function to get download URL
 get_download_url() {
     if [[ "$VERSION" == "latest" ]]; then
-        if [[ "$OS" == "Windows" ]]; then
-            echo "https://github.com/$GITHUB_REPO/releases/latest/download/lic.exe"
-            elif [[ "$OS" == "macOS" ]]; then
-            echo "https://github.com/$GITHUB_REPO/releases/latest/download/lic"
-        else
-            echo "https://github.com/$GITHUB_REPO/releases/latest/download/lic"
-        fi
+        echo "https://github.com/$GITHUB_REPO/releases/latest/download/$BINARY_NAME"
     else
-        if [[ "$OS" == "Windows" ]]; then
-            echo "https://github.com/$GITHUB_REPO/releases/download/v$VERSION/lic.exe"
-            elif [[ "$OS" == "macOS" ]]; then
-            echo "https://github.com/$GITHUB_REPO/releases/download/v$VERSION/lic"
-        else
-            echo "https://github.com/$GITHUB_REPO/releases/download/v$VERSION/lic"
-        fi
+        echo "https://github.com/$GITHUB_REPO/releases/download/v$VERSION/$BINARY_NAME"
     fi
 }
 
@@ -187,7 +177,7 @@ install_binary() {
 # Function to add to PATH
 add_to_path() {
     local shell_config=""
-    
+
     # Detect shell configuration file
     if [[ -n "$BASH_VERSION" ]]; then
         shell_config="$HOME/.bashrc"
@@ -199,11 +189,14 @@ add_to_path() {
         print_warning "Unsupported shell, please add $INSTALL_DIR to PATH manually"
         return
     fi
-    
+
+    # Set global variable for summary
+    SHELL_CONFIG="$shell_config"
+
     # Check if PATH already contains the install directory
     if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
         print_status "Adding $INSTALL_DIR to PATH in $shell_config..."
-        
+
         if [[ "$shell_config" == *".fish" ]]; then
             echo "set -gx PATH $INSTALL_DIR \$PATH" >> "$shell_config"
         else
@@ -211,7 +204,7 @@ add_to_path() {
             echo "# Added by $BINARY_NAME installer" >> "$shell_config"
             echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$shell_config"
         fi
-        
+
         print_success "PATH updated. Please restart your shell or run 'source $shell_config'"
     else
         print_status "PATH already contains $INSTALL_DIR"
@@ -230,8 +223,8 @@ show_summary() {
     echo "Binary Path: $INSTALL_DIR/$BINARY_NAME"
     echo ""
     echo "To use $BINARY_NAME, make sure $INSTALL_DIR is in your PATH."
-    if [[ -n "${shell_config:-}" ]]; then
-        echo "Run 'source $shell_config' or restart your shell to update PATH."
+    if [[ -n "${SHELL_CONFIG:-}" ]]; then
+        echo "Run 'source $SHELL_CONFIG' or restart your shell to update PATH."
     fi
     echo "=========================================="
 }
@@ -243,7 +236,7 @@ show_help() {
     echo "Options:"
     echo "  -v, --version VERSION    Specify version to install (default: latest)"
     echo "  -d, --dir PATH           Installation directory (default: \$HOME/.local/bin)"
-    echo "  -r, --repo REPO          GitHub repository (default: neil-lee/lic)"
+    echo "  -r, --repo REPO          GitHub repository (default: akirco/lic)"
     echo "  -h, --help               Show this help message"
     echo ""
     echo "Examples:"

@@ -43,12 +43,21 @@ jobs:
       run: |
         cargo build --release
 
+    - name: Determine binary name
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          echo "BINARY_NAME=lic.exe" >> $GITHUB_ENV
+        else
+          echo "BINARY_NAME=lic" >> $GITHUB_ENV
+        fi
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: binary-${{ matrix.os }}-${{ matrix.target }}
         path: |
-          target/release/lic
+          target/release/${{ env.BINARY_NAME }}
         if-no-files-found: error
 
   release:

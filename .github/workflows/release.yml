@@ -19,9 +19,6 @@ jobs:
           # Exclude macOS x86_64 as it's covered by macos-latest
           - os: macos-latest
             target: x86_64
-          # Add cross-compilation for other targets if needed
-          - os: ubuntu-latest
-            target: aarch64
 
     steps:
     - uses: actions/checkout@v4

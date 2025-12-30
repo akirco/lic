@@ -18,7 +18,7 @@ cargo install --git https://github.com/akirco/lic.git
 ### For Linux/macOS (bash)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/neil-lee/lic/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/akirco/lic/main/install.sh | bash
 ```
 
 ## Usage

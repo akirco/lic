@@ -66,7 +66,8 @@ detect_arch() {
             ARCH="x86_64"
         ;;
         aarch64|arm64)
-            ARCH="arm64"
+            print_error "ARM64 architecture is not supported. Please build from source."
+            exit 1
         ;;
         i386|i686)
             ARCH="i386"
